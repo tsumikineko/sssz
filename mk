@@ -83,6 +83,9 @@ prepare_filesystem() {
 build_toolchain() {
 	source $KEEP/toolchain_vers
 
+	cd $SOURCES
+	wget -c https://github.com/anthraxx/linux-hardened/releases/download/$LINUXPATCHVER/linux-hardened-$LINUXPATCHVER.patch
+
 	tarxf ftp://ftp.astron.com/pub/file/ file-$FILEVER .tar.gz
 	./configure \
 		--prefix=$TOOLS
@@ -161,6 +164,7 @@ build_toolchain() {
 	make install-gcc install-target-libgcc
 
 	tarxf https://cdn.kernel.org/pub/linux/kernel/v4.x/ linux-$LINUXVER .tar.xz
+	patch -Np1 -i $SOURCES/linux-hardened-$LINUXPATCHVER.patch
 	make mrproper $MKOPTS
 	make ARCH=$XKARCH INSTALL_HDR_PATH=$ROOTFS headers_install
 	find $ROOTFS/include -name .install -or -name ..install.cmd | xargs rm -rf

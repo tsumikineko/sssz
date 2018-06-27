@@ -2,6 +2,7 @@
 
 # Define toolchain packages versions
 export LINUXVER="4.17.3"
+export LINUXPATCHVER="4.17.3.a"
 export MUSLVER="1.1.19"
 export BINUTILSVER="2.30"
 export GMPVER="6.1.2"
