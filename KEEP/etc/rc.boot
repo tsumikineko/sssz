@@ -4,6 +4,8 @@ export PATH="/local/bin:/bin"
 
 dmesg -n 1
 
+clear
+
 mountpoint -q /proc    || mount -t proc proc /proc -o nosuid,noexec,nodev
 mountpoint -q /sys     || mount -t sysfs sys /sys -o nosuid,noexec,nodev
 mountpoint -q /run     || mount -t tmpfs run /run -o mode=0755,nosuid,nodev
