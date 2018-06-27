@@ -96,6 +96,8 @@ prepare_filesystem() {
 	for services in tty1 tty2 tty3 tty4 tty5 tty6 ttyS0 dmesg; do
 		ln -s /etc/service/$services var/service/$services
 	done
+
+	ln -s /proc/self/mounts etc/mtab
 }
 
 build_toolchain() {
