@@ -77,7 +77,7 @@ setup_environment() {
 
 prepare_filesystem() {
 	cd $ROOTFS
-	mkdir -p boot bin dev etc home lib mnt proc root share srv sys tmp var
+	mkdir -p boot bin dev etc/skel home lib mnt proc root share srv sys tmp var
 	mkdir -p var/log/sshd var/log/crond var/log/dmesg
 	mkdir -p var/empty var/service var/lib var/spool/cron/crontabs
 
@@ -92,6 +92,10 @@ prepare_filesystem() {
 	chmod 0600 etc/shadow
 
 	cp -a $KEEP/{genfstab,runsvdir-start,zzz} bin/
+
+	for services in tty1 tty2 tty3 tty4 tty5 tty6 ttyS0 dmesg; do
+		ln -s /etc/service/$services var/service/$services
+	done
 }
 
 build_toolchain() {
