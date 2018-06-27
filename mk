@@ -207,7 +207,7 @@ build_toolchain() {
 		--enable-checking=release \
 		--enable-default-pie \
 		--enable-default-ssp \
-		--enable-languages=c,c++,lto \
+		--enable-languages=c,c++ \
 		--enable-lto \
 		--enable-threads=posix \
 		--enable-tls \
