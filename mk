@@ -77,7 +77,19 @@ setup_environment() {
 
 prepare_filesystem() {
 	cd $ROOTFS
-	ln -sf . usr
+	mkdir -p boot bin dev etc home lib mnt proc root share srv sys tmp var
+	mkdir -p var/log/sshd var/log/crond var/log/dmesg
+	mkdir -p var/empty var/service var/lib var/spool/cron/crontabs
+
+	ln -sfn . usr
+	ln -sfn bin sbin
+
+	chmod 1777 tmp
+	chmod 700 root
+
+	cp -a $KEEP/etc/* etc/
+#	cp -a $KEEP/boot/* boot/
+	chmod 0600 etc/shadow
 }
 
 build_toolchain() {
