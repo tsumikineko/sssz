@@ -90,6 +90,8 @@ prepare_filesystem() {
 	cp -a $KEEP/etc/* etc/
 #	cp -a $KEEP/boot/* boot/
 	chmod 0600 etc/shadow
+
+	cp -a $KEEP/{genfstab,runsvdir-start,zzz} bin/
 }
 
 build_toolchain() {
