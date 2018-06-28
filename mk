@@ -210,6 +210,8 @@ build_toolchain() {
 	make DESTDIR=$ROOTFS install
 	clean_libtool
 
+	ln -sf ../lib/libc.so $ROOTFS/bin/ldd
+
 	tarxfalt http://ftpmirror.gnu.org/gnu/gmp/ gmp-$GMPVER .tar.xz
 	tarxfalt http://www.mpfr.org/mpfr-$MPFRVER/ mpfr-$MPFRVER .tar.xz
 	tarxfalt http://ftpmirror.gnu.org/gnu/mpc/ mpc-$MPCVER .tar.gz
