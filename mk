@@ -255,13 +255,13 @@ build_toolchain() {
 
 prepare_rootfs_build() {
 	export CROSS_COMPILE="$XTARGET-"
-	export CC="$CROSS_COMPILEgcc"
-	export CXX="$CROSS_COMPILEg++"
-	export AR="$CROSS_COMPILEar"
-	export AS="$CROSS_COMPILEas"
-	export RANLIB="$CROSS_COMPILEranlib"
-	export LD="$CROSS_COMPILEld"
-	export STRIP="$CROSS_COMPILEstrip"
+	export CC="$XTARGET-gcc"
+	export CXX="$XTARGET-g++"
+	export AR="$XTARGET-ar"
+	export AS="$XTARGET-as"
+	export RANLIB="$XTARGET-ranlib"
+	export LD="$XTARGET-ld"
+	export STRIP="$XTARGET-strip"
 	export PKG_CONFIG_PATH="$ROOTFS/usr/lib/pkgconfig:$ROOTFS/usr/share/pkgconfig"
 	export PKG_CONFIG_SYSROOT_DIR="$ROOTFS"
 }
@@ -278,16 +278,12 @@ build_rootfs() {
 	sed -i 's/\(CONFIG_UDPSVD\)=y/# \1 is not set/' .config
 	sed -i 's/\(CONFIG_TCPSVD\)=y/# \1 is not set/' .config
 	make ARCH=$XKARCH CROSS_COMPILE=$CROSS_COMPILE EXTRA_CFLAGS="$CFLAGS" $MKOPTS
-
-	# Install busybox
-	cp busybox $ROOTFS/bin/busybox
-	for applet in `cat busybox.links|sed 's|^.*/||'`; do
-		ln -s busybox $ROOTFS/bin/$applet || true
-	done
+	make ARCH=$XKARCH CROSS_COMPILE=$CROSS_COMPILE CONFIG_PREFIX=$ROOTFS install
 
 	# Configure busybox
 	chmod 4755 $ROOTFS/bin/busybox
 	install -Dm0755 examples/udhcp/simple.script $ROOTFS/share/udhcpc/default.script
+	rm -rf $ROOTFS/linuxrc
 
 	tarxf https://sortix.org/libz/release/ libz-1.2.8.2015.12.26 .tar.gz
 	./configure \
@@ -327,16 +323,6 @@ EOF
 		--build=$XHOST \
 		--host=$XTARGET \
 		--cache-file=config.cache \
-		--disable-nls
-	make $MKOPTS
-	make DESTDIR=$ROOTFS install
-	clean_libtool
-
-	tarxf http://ftpmirror.gnu.org/gnu/bison/ bison-3.0.5 .tar.xz
-	./configure \
-		--prefix= \
-		--build=$XHOST \
-		--host=$XTARGET \
 		--disable-nls
 	make $MKOPTS
 	make DESTDIR=$ROOTFS install
