@@ -267,6 +267,8 @@ prepare_rootfs_build() {
 }
 
 build_rootfs() {
+	source $KEEP/toolchain_vers
+
 	tarxf http://busybox.net/downloads/ busybox-1.28.4 .tar.bz2
 	make ARCH=$XKARCH CROSS_COMPILE=$CROSS_COMPILE defconfig $MKOPTS
 	sed -i 's/\(CONFIG_\)\(.*\)\(INETD\)\(.*\)=y/# \1\2\3\4 is not set/g' .config
@@ -347,7 +349,7 @@ EOF
 	make prefix= DESTDIR=$ROOTFS install
 	clean_libtool
 
-	tarxf http://ftpmirror.gnu.org/gnu/binutils/ binutils-2.30 .tar.xz
+	tarxf http://ftpmirror.gnu.org/gnu/binutils/ binutils-$BINUTILSVER .tar.xz
 	sed -i "/ac_cpp=/s/\$CPPFLAGS/\$CPPFLAGS -O2/" libiberty/configure
 	mkdir build
 	cd build
