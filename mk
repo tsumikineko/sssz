@@ -284,7 +284,91 @@ build_rootfs() {
 	# Configure busybox
 	chmod 4755 $ROOTFS/bin/busybox
 	install -Dm0755 examples/udhcp/simple.script $ROOTFS/share/udhcpc/default.script
-	rm -rf $ROOTFS/linuxrc
+
+	tarxf https://sortix.org/libz/release/ libz-1.2.8.2015.12.26 .tar.gz
+	./configure \
+		--prefix= \
+		--build=$XHOST \
+		--host=$XTARGET
+	make $MKOPTS
+	make DESTDIR=$ROOTFS install
+	clean_libtool
+
+	tarxf http://ftpmirror.gnu.org/gnu/m4/ m4-1.4.18 .tar.xz
+	./configure \
+		--prefix= \
+		--build=$XHOST \
+		--host=$XTARGET
+	make $MKOPTS
+	make DESTDIR=$ROOTFS install
+	clean_libtool
+
+	tarxf http://ftpmirror.gnu.org/gnu/bison/ bison-3.0.5 .tar.xz
+	./configure \
+		--prefix= \
+		--build=$XHOST \
+		--host=$XTARGET \
+		--disable-nls
+	make $MKOPTS
+	make DESTDIR=$ROOTFS install
+	clean_libtool
+
+	tarxf http://github.com/westes/flex/releases/download/v2.6.4/ flex-2.6.4 .tar.gz
+cat > config.cache << EOF
+ac_cv_func_malloc_0_nonnull=yes
+ac_cv_func_realloc_0_nonnull=yes
+EOF
+	./configure \
+		--prefix= \
+		--build=$XHOST \
+		--host=$XTARGET \
+		--cache-file=config.cache \
+		--disable-nls
+	make $MKOPTS
+	make DESTDIR=$ROOTFS install
+	clean_libtool
+
+	tarxf http://ftpmirror.gnu.org/gnu/bison/ bison-3.0.5 .tar.xz
+	./configure \
+		--prefix= \
+		--build=$XHOST \
+		--host=$XTARGET \
+		--disable-nls
+	make $MKOPTS
+	make DESTDIR=$ROOTFS install
+	clean_libtool
+
+	tarxf http://ftp.barfooze.de/pub/sabotage/tarballs/ libelf-compat-0.152c001 .tar.bz2
+	echo "CFLAGS += $CFLAGS -fPIC" > config.mak
+	sed -i 's@HEADERS = src/libelf.h@HEADERS = src/libelf.h src/gelf.h@' Makefile
+	make CC="$CC" HOSTCC="$HOSTCC" $MKOPTS
+	make prefix= DESTDIR=$ROOTFS install
+	clean_libtool
+
+	tarxf http://ftpmirror.gnu.org/gnu/binutils/ binutils-2.30 .tar.xz
+	sed -i "/ac_cpp=/s/\$CPPFLAGS/\$CPPFLAGS -O2/" libiberty/configure
+	mkdir build
+	cd build
+	../configure \
+		--prefix= \
+		--libdir=/lib \
+		--libexecdir=/lib \
+		--build=$XHOST \
+		--host=$XTARGET \
+		--target=$XTARGET \
+		--with-system-zlib \
+		--enable-deterministic-archives \
+		--enable-gold \
+		--enable-ld=default \
+		--enable-plugins \
+		--enable-shared \
+		--disable-multilib \
+		--disable-nls \
+		--disable-werror
+	make configure-host $MKOPTS
+	make tooldir=/ $MKOPTS
+	make tooldir=/ DESTDIR=$ROOTFS install
+	clean_libtool
 }
 
 check_for_root
