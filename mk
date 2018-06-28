@@ -98,6 +98,14 @@ prepare_filesystem() {
 	done
 
 	ln -s /proc/self/mounts etc/mtab
+
+	mkdir -p \
+		etc/network/if-down.d \
+		etc/network/if-post-down.d \
+		etc/network/if-post-up.d \
+		etc/network/if-pre-down.d \
+		etc/network/if-pre-up.d \
+		etc/network/if-up.d
 }
 
 build_toolchain() {
