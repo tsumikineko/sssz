@@ -274,8 +274,12 @@ build_rootfs() {
 	sed -i 's/\(CONFIG_UDPSVD\)=y/# \1 is not set/' .config
 	sed -i 's/\(CONFIG_TCPSVD\)=y/# \1 is not set/' .config
 	make ARCH=$XKARCH CROSS_COMPILE=$CROSS_COMPILE EXTRA_CFLAGS="$CFLAGS" $MKOPTS
-	make ARCH=$XKARCH CROSS_COMPILE=$CROSS_COMPILE CONFIG_PREFIX=$pkgdir install $MKOPTS
-	clean_libtool
+
+	# Install busybox
+	cp busybox $ROOTFS/bin/busybox
+	for applet in `cat busybox.links|sed 's|^.*/||'`; do
+		ln -s busybox $ROOTFS/bin/$applet || true
+	done
 
 	# Configure busybox
 	chmod 4755 $ROOTFS/bin/busybox
