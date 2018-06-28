@@ -4,7 +4,7 @@ set -e
 
 tarxf() {
 	cd $SOURCES
-	[ -f $2$3 ] || wget -c $1$2$3
+	[ -f $2$3 ] || curl -L -O $1$2$3 -C -
 	rm -rf ${4:-$2}
 	tar -xf $2$3
 	cd ${4:-$2}
@@ -12,7 +12,7 @@ tarxf() {
 
 tarxfalt() {
 	cd $SOURCES
-	[ -f $2$3 ] || wget -c $1$2$3
+	[ -f $2$3 ] || curl -L -O $1$2$3 -C -
 	rm -rf ${4:-$2}
 	tar -xf $2$3
 }
@@ -112,7 +112,7 @@ build_toolchain() {
 	source $KEEP/toolchain_vers
 
 	cd $SOURCES
-	wget -c https://github.com/anthraxx/linux-hardened/releases/download/$LINUXPATCHVER/linux-hardened-$LINUXPATCHVER.patch
+	curl -L -O https://github.com/anthraxx/linux-hardened/releases/download/$LINUXPATCHVER/linux-hardened-$LINUXPATCHVER.patch -C -
 
 	tarxf ftp://ftp.astron.com/pub/file/ file-$FILEVER .tar.gz
 	./configure \
