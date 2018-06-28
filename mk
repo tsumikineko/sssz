@@ -266,15 +266,15 @@ prepare_rootfs_build() {
 
 build_rootfs() {
 	tarxf http://busybox.net/downloads/ busybox-1.28.4 .tar.bz2
-	make ARCH=$XKARCH CROSS_COMPILE=$CROSS_COMPILE defconfig
+	make ARCH=$XKARCH CROSS_COMPILE=$CROSS_COMPILE defconfig $MKOPTS
 	sed -i 's/\(CONFIG_\)\(.*\)\(INETD\)\(.*\)=y/# \1\2\3\4 is not set/g' .config
 	sed -i 's/\(CONFIG_IFPLUGD\)=y/# \1 is not set/' .config
 	sed -i 's/\(CONFIG_FEATURE_WTMP\)=y/# \1 is not set/' .config
 	sed -i 's/\(CONFIG_FEATURE_UTMP\)=y/# \1 is not set/' .config
 	sed -i 's/\(CONFIG_UDPSVD\)=y/# \1 is not set/' .config
 	sed -i 's/\(CONFIG_TCPSVD\)=y/# \1 is not set/' .config
-	make ARCH=$XKARCH CROSS_COMPILE=$CROSS_COMPILE EXTRA_CFLAGS="$CFLAGS"
-	make ARCH=$XKARCH CROSS_COMPILE=$CROSS_COMPILE CONFIG_PREFIX=$pkgdir install
+	make ARCH=$XKARCH CROSS_COMPILE=$CROSS_COMPILE EXTRA_CFLAGS="$CFLAGS" $MKOPTS
+	make ARCH=$XKARCH CROSS_COMPILE=$CROSS_COMPILE CONFIG_PREFIX=$pkgdir install $MKOPTS
 	clean_libtool
 
 	# Configure busybox
