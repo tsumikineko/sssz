@@ -130,7 +130,7 @@ build_toolchain() {
 	make $MKOPTS
 	make install
 	ln -s pkgconf $TOOLS/bin/pkg-config
-	ln -s pkgconf $TOOLS/bin/$XTARGET-pkg-config
+	ln -s pkgconf $TOOLS/bin/$CROSS_COMPILEpkg-config
 
 	tarxf http://ftpmirror.gnu.org/gnu/binutils/ binutils-$BINUTILSVER .tar.xz
 	sed -i "/ac_cpp=/s/\$CPPFLAGS/\$CPPFLAGS -O2/" libiberty/configure
@@ -199,7 +199,7 @@ build_toolchain() {
 	clean_libtool
 
 	tarxf http://www.musl-libc.org/releases/ musl-$MUSLVER .tar.gz
-	CROSS_COMPILE=$XTARGET- \
+	CROSS_COMPILE=$CROSS_COMPILE \
 	./configure \
 		--prefix= \
 		--syslibdir=/lib \
@@ -251,11 +251,45 @@ build_toolchain() {
 	make install
 }
 
+prepare_rootfs_build() {
+	export CROSS_COMPILE="$XTARGET-"
+	export CC="$CROSS_COMPILEgcc"
+	export CXX="$CROSS_COMPILEg++"
+	export AR="$CROSS_COMPILEar"
+	export AS="$CROSS_COMPILEas"
+	export RANLIB="$CROSS_COMPILEranlib"
+	export LD="$CROSS_COMPILEld"
+	export STRIP="$CROSS_COMPILEstrip"
+	export PKG_CONFIG_PATH="$ROOTFS/usr/lib/pkgconfig:$ROOTFS/usr/share/pkgconfig"
+	export PKG_CONFIG_SYSROOT_DIR="$ROOTFS"
+}
+
+build_rootfs() {
+	tarxf http://busybox.net/downloads/ busybox-1.28.4 .tar.bz2
+	make ARCH=$XKARCH CROSS_COMPILE=$CROSS_COMPILE defconfig
+	sed -i 's/\(CONFIG_\)\(.*\)\(INETD\)\(.*\)=y/# \1\2\3\4 is not set/g' .config
+	sed -i 's/\(CONFIG_IFPLUGD\)=y/# \1 is not set/' .config
+	sed -i 's/\(CONFIG_FEATURE_WTMP\)=y/# \1 is not set/' .config
+	sed -i 's/\(CONFIG_FEATURE_UTMP\)=y/# \1 is not set/' .config
+	sed -i 's/\(CONFIG_UDPSVD\)=y/# \1 is not set/' .config
+	sed -i 's/\(CONFIG_TCPSVD\)=y/# \1 is not set/' .config
+	make ARCH=$XKARCH CROSS_COMPILE=$CROSS_COMPILE EXTRA_CFLAGS="$CFLAGS"
+	make ARCH=$XKARCH CROSS_COMPILE=$CROSS_COMPILE CONFIG_PREFIX=$pkgdir install
+	clean_libtool
+
+	# Configure busybox
+	chmod 4755 $ROOTFS/bin/busybox
+	install -Dm0755 examples/udhcp/simple.script $ROOTFS/share/udhcpc/default.script
+	rm -rf $ROOTFS/linuxrc
+}
+
 check_for_root
 setup_architecture
 setup_environment
 prepare_filesystem
 build_toolchain
+prepare_rootfs_build
+build_rootfs
 
 exit 0
 
