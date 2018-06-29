@@ -238,7 +238,7 @@ build_toolchain() {
 	printmsg "Configuring musl libc"
 	ln -sf ../lib/libc.so $ROOTFS/bin/ldd
 
-	printmsg "Building host GCC (fianl stage)"
+	printmsg "Building host GCC (final stage)"
 	tarxfalt http://ftpmirror.gnu.org/gnu/gmp/ gmp-$GMPVER .tar.xz
 	tarxfalt http://www.mpfr.org/mpfr-$MPFRVER/ mpfr-$MPFRVER .tar.xz
 	tarxfalt http://ftpmirror.gnu.org/gnu/mpc/ mpc-$MPCVER .tar.gz
