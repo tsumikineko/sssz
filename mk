@@ -2,6 +2,18 @@
 
 set -e
 
+printmsg() {
+	local msg=$(echo $1 | tr -s / /)
+	printf "\e[1m\e[32m==>\e[0m $msg\n"
+	sleep 1
+}
+
+printmsgerror() {
+	local msg=$(echo $1 | tr -s / /)
+	printf "\e[1m\e[31m==!\e[0m $msg\n"
+	sleep 1
+}
+
 tarxf() {
 	cd $SOURCES
 	[ -f $2$3 ] || curl -L -O $1$2$3 -C -
@@ -28,30 +40,34 @@ check_for_root() {
 setup_architecture() {
 	case $BARCH in
 		x86_64)
+			printmsg "Using configuration for x86_64"
 			export XHOST="$(echo ${MACHTYPE} | sed -e 's/-[^-]*/-cross/')"
 			export XTARGET="x86_64-linux-musl"
 			export XKARCH="x86_64"
 			export GCCOPTS="--with-arch=x86-64 --with-tune=generic"
 			;;
 		aarch64)
+			printmsg "Using configuration for aarch64"
 			export XHOST="$(echo ${MACHTYPE} | sed -e 's/-[^-]*/-cross/')"
 			export XTARGET="aarch64-linux-musl"
 			export XKARCH="arm64"
 			export GCCOPTS="--with-arch=armv8-a --with-abi=lp64"
 			;;
 		armhf)
+			printmsg "Using configuration for armhf"
 			export XHOST="$(echo ${MACHTYPE} | sed -e 's/-[^-]*/-cross/')"
 			export XTARGET="arm-linux-musleabihf"
 			export XKARCH="arm"
 			export GCCOPTS="--with-arch=armv7-a --with-float=hard --with-fpu=vfpv3"
 			;;
 		*)
-			echo "BARCH variable isn't set!"
+			printmsgerror "BARCH variable isn't set!"
 			exit 1
 	esac
 }
 
 setup_environment() {
+	printmsg "Setting up build environment"
 	export CWD="$(pwd)"
 	export KEEP="$CWD/KEEP"
 	export BUILD="$CWD/build"
@@ -76,6 +92,7 @@ setup_environment() {
 }
 
 prepare_filesystem() {
+	printmsg "Preparing rootfs skeleton"
 	cd $ROOTFS
 	mkdir -p boot bin dev etc/skel home lib mnt proc root share srv sys tmp var
 	mkdir -p var/log/sshd var/log/crond var/log/dmesg
@@ -109,17 +126,21 @@ prepare_filesystem() {
 }
 
 build_toolchain() {
+	printmsg "Building cross-toolchain for $BARCH"
 	source $KEEP/toolchain_vers
 
+	printmsg "Downloading patch for Linux"
 	cd $SOURCES
 	curl -L -O https://github.com/anthraxx/linux-hardened/releases/download/$LINUXPATCHVER/linux-hardened-$LINUXPATCHVER.patch -C -
 
+	printmsg "Building host file"
 	tarxf ftp://ftp.astron.com/pub/file/ file-$FILEVER .tar.gz
 	./configure \
 		--prefix=$TOOLS
 	make $MKOPTS
 	make install
 
+	printmsg "Building host pkgconf"
 	tarxf http://distfiles.dereferenced.org/pkgconf/ pkgconf-$PKGCONFVER .tar.xz
 	LDFLAGS="-s -static" \
 	./configure \
@@ -132,6 +153,7 @@ build_toolchain() {
 	ln -s pkgconf $TOOLS/bin/pkg-config
 	ln -s pkgconf $TOOLS/bin/$CROSS_COMPILEpkg-config
 
+	printmsg "Building host binutils"
 	tarxf http://ftpmirror.gnu.org/gnu/binutils/ binutils-$BINUTILSVER .tar.xz
 	sed -i "/ac_cpp=/s/\$CPPFLAGS/\$CPPFLAGS -O2/" libiberty/configure
 	mkdir build
@@ -148,6 +170,7 @@ build_toolchain() {
 	make $MKOPTS
 	make install
 
+	printmsg "Building host GCC (stage 1)"
 	tarxfalt http://ftpmirror.gnu.org/gnu/gmp/ gmp-$GMPVER .tar.xz
 	tarxfalt http://www.mpfr.org/mpfr-$MPFRVER/ mpfr-$MPFRVER .tar.xz
 	tarxfalt http://ftpmirror.gnu.org/gnu/mpc/ mpc-$MPCVER .tar.gz
@@ -191,6 +214,7 @@ build_toolchain() {
 	make all-gcc all-target-libgcc $MKOPTS
 	make install-gcc install-target-libgcc
 
+	printmsg "Installing Linux headers"
 	tarxf https://cdn.kernel.org/pub/linux/kernel/v4.x/ linux-$LINUXVER .tar.xz
 	patch -Np1 -i $SOURCES/linux-hardened-$LINUXPATCHVER.patch
 	make mrproper $MKOPTS
@@ -198,6 +222,7 @@ build_toolchain() {
 	find $ROOTFS/include -name .install -or -name ..install.cmd | xargs rm -rf
 	clean_libtool
 
+	printmsg "Building musl libc"
 	tarxf http://www.musl-libc.org/releases/ musl-$MUSLVER .tar.gz
 	CROSS_COMPILE=$CROSS_COMPILE \
 	./configure \
@@ -210,8 +235,10 @@ build_toolchain() {
 	make DESTDIR=$ROOTFS install
 	clean_libtool
 
+	printmsg "Configuring musl libc"
 	ln -sf ../lib/libc.so $ROOTFS/bin/ldd
 
+	printmsg "Building host GCC (fianl stage)"
 	tarxfalt http://ftpmirror.gnu.org/gnu/gmp/ gmp-$GMPVER .tar.xz
 	tarxfalt http://www.mpfr.org/mpfr-$MPFRVER/ mpfr-$MPFRVER .tar.xz
 	tarxfalt http://ftpmirror.gnu.org/gnu/mpc/ mpc-$MPCVER .tar.gz
@@ -254,6 +281,7 @@ build_toolchain() {
 }
 
 prepare_rootfs_build() {
+	printmsg "Preparing for rootfs build"
 	export CROSS_COMPILE="$XTARGET-"
 	export CC="$XTARGET-gcc"
 	export CXX="$XTARGET-g++"
@@ -269,6 +297,7 @@ prepare_rootfs_build() {
 build_rootfs() {
 	source $KEEP/toolchain_vers
 
+	printmsg "Building busybox"
 	tarxf http://busybox.net/downloads/ busybox-1.28.4 .tar.bz2
 	make ARCH=$XKARCH CROSS_COMPILE=$CROSS_COMPILE defconfig $MKOPTS
 	sed -i 's/\(CONFIG_\)\(.*\)\(INETD\)\(.*\)=y/# \1\2\3\4 is not set/g' .config
@@ -281,10 +310,12 @@ build_rootfs() {
 	make ARCH=$XKARCH CROSS_COMPILE=$CROSS_COMPILE CONFIG_PREFIX=$ROOTFS install
 
 	# Configure busybox
+	printmsg "Configuring busybox"
 	chmod 4755 $ROOTFS/bin/busybox
 	install -Dm0755 examples/udhcp/simple.script $ROOTFS/share/udhcpc/default.script
 	rm -rf $ROOTFS/linuxrc
 
+	printmsg "Building libz"
 	tarxf https://sortix.org/libz/release/ libz-1.2.8.2015.12.26 .tar.gz
 	./configure \
 		--prefix= \
@@ -294,6 +325,7 @@ build_rootfs() {
 	make DESTDIR=$ROOTFS install
 	clean_libtool
 
+	printmsg "Building m4"
 	tarxf http://ftpmirror.gnu.org/gnu/m4/ m4-1.4.18 .tar.xz
 	./configure \
 		--prefix= \
@@ -303,6 +335,7 @@ build_rootfs() {
 	make DESTDIR=$ROOTFS install
 	clean_libtool
 
+	printmsg "Building bison"
 	tarxf http://ftpmirror.gnu.org/gnu/bison/ bison-3.0.5 .tar.xz
 	./configure \
 		--prefix= \
@@ -313,6 +346,7 @@ build_rootfs() {
 	make DESTDIR=$ROOTFS install
 	clean_libtool
 
+	printmsg "Building flex"
 	tarxf http://github.com/westes/flex/releases/download/v2.6.4/ flex-2.6.4 .tar.gz
 cat > config.cache << EOF
 ac_cv_func_malloc_0_nonnull=yes
@@ -328,6 +362,7 @@ EOF
 	make DESTDIR=$ROOTFS install
 	clean_libtool
 
+	printmsg "Building libelf"
 	tarxf http://ftp.barfooze.de/pub/sabotage/tarballs/ libelf-compat-0.152c001 .tar.bz2
 	echo "CFLAGS += $CFLAGS -fPIC" > config.mak
 	sed -i 's@HEADERS = src/libelf.h@HEADERS = src/libelf.h src/gelf.h@' Makefile
@@ -335,6 +370,7 @@ EOF
 	make prefix= DESTDIR=$ROOTFS install
 	clean_libtool
 
+	printmsg "Building binutils"
 	tarxf http://ftpmirror.gnu.org/gnu/binutils/ binutils-$BINUTILSVER .tar.xz
 	sed -i "/ac_cpp=/s/\$CPPFLAGS/\$CPPFLAGS -O2/" libiberty/configure
 	mkdir build
@@ -361,6 +397,10 @@ EOF
 	clean_libtool
 }
 
+strip_rootfs() {
+	printmsg "Stripping rootfs"
+}
+
 check_for_root
 setup_architecture
 setup_environment
@@ -368,6 +408,7 @@ prepare_filesystem
 build_toolchain
 prepare_rootfs_build
 build_rootfs
+strip_rootfs
 
 exit 0
 
