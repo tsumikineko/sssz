@@ -1,14 +1,15 @@
 #!/bin/sh
 
 # Define toolchain packages versions
-export LINUXVER="4.17.3"
-export LINUXPATCHVER="4.17.3.a"
+export LINUXVER="4.14.56"
+export LINUXPATCHVER="4.14.56.a"
 export MUSLVER="1.1.19"
-export BINUTILSVER="2.30"
+export BINUTILSVER="2.31.1"
 export GMPVER="6.1.2"
 export MPFRVER="4.0.1"
 export MPCVER="1.1.0"
 export ISLVER="0.19"
 export GCCVER="8.1.0"
+export GCCPATCHVER="1.3"
 export FILEVER="5.33"
 export PKGCONFVER="1.5.1"

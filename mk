@@ -44,7 +44,7 @@ setup_architecture() {
 			export XHOST="$(echo ${MACHTYPE} | sed -e 's/-[^-]*/-cross/')"
 			export XTARGET="x86_64-linux-musl"
 			export XKARCH="x86_64"
-			export GCCOPTS="--with-arch=x86-64 --with-tune=generic"
+			export GCCOPTS=
 			;;
 		aarch64)
 			printmsg "Using configuration for aarch64"
@@ -53,12 +53,12 @@ setup_architecture() {
 			export XKARCH="arm64"
 			export GCCOPTS="--with-arch=armv8-a --with-abi=lp64"
 			;;
-		armhf)
+		arm)
 			printmsg "Using configuration for armhf"
 			export XHOST="$(echo ${MACHTYPE} | sed -e 's/-[^-]*/-cross/')"
-			export XTARGET="arm-linux-musleabihf"
+			export XTARGET="armv7l-linux-musleabihf"
 			export XKARCH="arm"
-			export GCCOPTS="--with-arch=armv7-a --with-float=hard --with-fpu=vfpv3"
+			export GCCOPTS="--with-arch=armv7-a --with-fpu=vfpv3 --with-float=hard"
 			;;
 		*)
 			printmsgerror "BARCH variable isn't set!"
@@ -85,44 +85,13 @@ setup_environment() {
 	export HOSTCXX="g++"
 	export MKOPTS="-j$(expr $(nproc) + 1)"
 
-	export CPPFLAGS="-D_FORTIFY_SOURCE=2"
-	export CFLAGS="-Os -g0"
-	export CXXFLAGS="-Os -g0"
-	export LDFLAGS="-s"
+	export CFLAGS="-Os -g0 -pipe --static"
+	export CXXFLAGS="$CFLAGS"
+	export LDFLAGS="-s -static"
 }
 
 prepare_filesystem() {
 	printmsg "Preparing rootfs skeleton"
-	cd $ROOTFS
-	mkdir -p boot bin dev etc/skel home lib mnt proc root share srv sys tmp var
-	mkdir -p var/log/sshd var/log/crond var/log/dmesg
-	mkdir -p var/empty var/service var/lib var/spool/cron/crontabs
-
-	ln -sfn . usr
-	ln -sfn bin sbin
-
-	chmod 1777 tmp
-	chmod 700 root
-
-	cp -a $KEEP/etc/* etc/
-#	cp -a $KEEP/boot/* boot/
-	chmod 0600 etc/shadow
-
-	cp -a $KEEP/{genfstab,runsvdir-start,zzz} bin/
-
-	for services in tty1 tty2 tty3 tty4 tty5 tty6 ttyS0 dmesg; do
-		ln -s /etc/service/$services var/service/$services
-	done
-
-	ln -s /proc/self/mounts etc/mtab
-
-	mkdir -p \
-		etc/network/if-down.d \
-		etc/network/if-post-down.d \
-		etc/network/if-post-up.d \
-		etc/network/if-pre-down.d \
-		etc/network/if-pre-up.d \
-		etc/network/if-up.d
 }
 
 build_toolchain() {
@@ -136,7 +105,8 @@ build_toolchain() {
 	printmsg "Building host file"
 	tarxf ftp://ftp.astron.com/pub/file/ file-$FILEVER .tar.gz
 	./configure \
-		--prefix=$TOOLS
+		--prefix=$TOOLS \
+		--disable-shared
 	make $MKOPTS
 	make install
 
@@ -155,7 +125,6 @@ build_toolchain() {
 
 	printmsg "Building host binutils"
 	tarxf http://ftpmirror.gnu.org/gnu/binutils/ binutils-$BINUTILSVER .tar.xz
-	sed -i "/ac_cpp=/s/\$CPPFLAGS/\$CPPFLAGS -O2/" libiberty/configure
 	mkdir build
 	cd build
 	../configure \
@@ -165,6 +134,7 @@ build_toolchain() {
 		--enable-deterministic-archives \
 		--disable-multilib \
 		--disable-nls \
+		--disable-shared \
 		--disable-werror
 	make configure-host $MKOPTS
 	make $MKOPTS
@@ -176,14 +146,31 @@ build_toolchain() {
 	tarxfalt http://ftpmirror.gnu.org/gnu/mpc/ mpc-$MPCVER .tar.gz
 	tarxfalt http://isl.gforge.inria.fr/ isl-$ISLVER .tar.xz
 	tarxf http://ftpmirror.gnu.org/gnu/gcc/gcc-$GCCVER/ gcc-$GCCVER .tar.xz
+	patch -Np1 -i $KEEP/gcc/10_all_default-fortify-source.patch
+	patch -Np1 -i $KEEP/gcc/11_all_default-warn-format-security.patch
+	patch -Np1 -i $KEEP/gcc/12_all_default-warn-trampolines.patch
+	patch -Np1 -i $KEEP/gcc/13_all_default-ssp-fix.patch
+	patch -Np1 -i $KEEP/gcc/25_all_alpha-mieee-default.patch
+	patch -Np1 -i $KEEP/gcc/34_all_ia64_note.GNU-stack.patch
+	patch -Np1 -i $KEEP/gcc/35_all_i386_libgcc_note.GNU-stack.patch
+	patch -Np1 -i $KEEP/gcc/50_all_libiberty-asprintf.patch
+	patch -Np1 -i $KEEP/gcc/51_all_libiberty-pic.patch
+	patch -Np1 -i $KEEP/gcc/54_all_nopie-all-flags.patch
+	patch -Np1 -i $KEEP/gcc/55_all_extra-options.patch
+	patch -Np1 -i $KEEP/gcc/90_all_pr55930-dependency-tracking.patch
+	patch -Np1 -i $KEEP/gcc/92_all_sh-drop-sysroot-suffix.patch
+	patch -Np1 -i $KEEP/gcc/93_all_arm-arch.patch
+	patch -Np1 -i $KEEP/gcc/94_all_mips-o32-asan.patch
+	patch -Np1 -i $KEEP/gcc/95_all_ia64-TEXTREL.patch
+	patch -Np1 -i $KEEP/gcc/96_all_lto-O2-PR85655.patch
+	patch -Np1 -i $KEEP/gcc/97_all_disable-systemtap-switch.patch
+	patch -Np1 -i $KEEP/gcc/gcc-pure64.patch
+	patch -Np1 -i $KEEP/gcc/gcc-pure64-mips.patch
 	mv ../gmp-$GMPVER gmp
 	mv ../mpfr-$MPFRVER mpfr
 	mv ../mpc-$MPCVER mpc
 	mv ../isl-$ISLVER isl
-	patch -Np1 -i $KEEP/gcc/gcc-pure64.patch
-	patch -Np1 -i $KEEP/gcc/gcc-pure64-mips.patch
 	sed -i 's@\./fixinc\.sh@-c true@' gcc/Makefile.in
-	sed -i "/ac_cpp=/s/\$CPPFLAGS/\$CPPFLAGS -O2/" {libiberty,gcc}/configure
 	mkdir build
 	cd build
 	../configure $GCCOPTS \
@@ -191,6 +178,7 @@ build_toolchain() {
 		--build=$XHOST \
 		--host=$XHOST \
 		--target=$XTARGET \
+		--with-pkgversion="sssz" \
 		--with-sysroot=$ROOTFS \
 		--with-newlib \
 		--without-headers \
@@ -224,7 +212,6 @@ build_toolchain() {
 
 	printmsg "Building musl libc"
 	tarxf http://www.musl-libc.org/releases/ musl-$MUSLVER .tar.gz
-	CROSS_COMPILE=$CROSS_COMPILE \
 	./configure \
 		--prefix= \
 		--syslibdir=/lib \
@@ -244,14 +231,31 @@ build_toolchain() {
 	tarxfalt http://ftpmirror.gnu.org/gnu/mpc/ mpc-$MPCVER .tar.gz
 	tarxfalt http://isl.gforge.inria.fr/ isl-$ISLVER .tar.xz
 	tarxf http://ftpmirror.gnu.org/gnu/gcc/gcc-$GCCVER/ gcc-$GCCVER .tar.xz
+	patch -Np1 -i $KEEP/gcc/10_all_default-fortify-source.patch
+	patch -Np1 -i $KEEP/gcc/11_all_default-warn-format-security.patch
+	patch -Np1 -i $KEEP/gcc/12_all_default-warn-trampolines.patch
+	patch -Np1 -i $KEEP/gcc/13_all_default-ssp-fix.patch
+	patch -Np1 -i $KEEP/gcc/25_all_alpha-mieee-default.patch
+	patch -Np1 -i $KEEP/gcc/34_all_ia64_note.GNU-stack.patch
+	patch -Np1 -i $KEEP/gcc/35_all_i386_libgcc_note.GNU-stack.patch
+	patch -Np1 -i $KEEP/gcc/50_all_libiberty-asprintf.patch
+	patch -Np1 -i $KEEP/gcc/51_all_libiberty-pic.patch
+	patch -Np1 -i $KEEP/gcc/54_all_nopie-all-flags.patch
+	patch -Np1 -i $KEEP/gcc/55_all_extra-options.patch
+	patch -Np1 -i $KEEP/gcc/90_all_pr55930-dependency-tracking.patch
+	patch -Np1 -i $KEEP/gcc/92_all_sh-drop-sysroot-suffix.patch
+	patch -Np1 -i $KEEP/gcc/93_all_arm-arch.patch
+	patch -Np1 -i $KEEP/gcc/94_all_mips-o32-asan.patch
+	patch -Np1 -i $KEEP/gcc/95_all_ia64-TEXTREL.patch
+	patch -Np1 -i $KEEP/gcc/96_all_lto-O2-PR85655.patch
+	patch -Np1 -i $KEEP/gcc/97_all_disable-systemtap-switch.patch
+	patch -Np1 -i $KEEP/gcc/gcc-pure64.patch
+	patch -Np1 -i $KEEP/gcc/gcc-pure64-mips.patch
 	mv ../gmp-$GMPVER gmp
 	mv ../mpfr-$MPFRVER mpfr
 	mv ../mpc-$MPCVER mpc
 	mv ../isl-$ISLVER isl
-	patch -Np1 -i $KEEP/gcc/gcc-pure64.patch
-	patch -Np1 -i $KEEP/gcc/gcc-pure64-mips.patch
 	sed -i 's@\./fixinc\.sh@-c true@' gcc/Makefile.in
-	sed -i "/ac_cpp=/s/\$CPPFLAGS/\$CPPFLAGS -O2/" {libiberty,gcc}/configure
 	mkdir build
 	cd build
 	../configure $GCCOPTS \
@@ -259,6 +263,7 @@ build_toolchain() {
 		--build=$XHOST \
 		--host=$XHOST \
 		--target=$XTARGET \
+		--with-pkgversion="sssz" \
 		--with-sysroot=$ROOTFS \
 		--enable-__cxa_atexit \
 		--enable-checking=release \
@@ -274,6 +279,7 @@ build_toolchain() {
 		--disable-libsanitizer \
 		--disable-multilib \
 		--disable-nls \
+		--disable-shared \
 		--disable-symvers \
 		--disable-werror
 	make $MKOPTS
@@ -296,31 +302,13 @@ prepare_rootfs_build() {
 
 build_rootfs() {
 	source $KEEP/toolchain_vers
-
-	printmsg "Building busybox"
-	tarxf http://busybox.net/downloads/ busybox-1.28.4 .tar.bz2
-	make ARCH=$XKARCH CROSS_COMPILE=$CROSS_COMPILE defconfig $MKOPTS
-	sed -i 's/\(CONFIG_\)\(.*\)\(INETD\)\(.*\)=y/# \1\2\3\4 is not set/g' .config
-	sed -i 's/\(CONFIG_IFPLUGD\)=y/# \1 is not set/' .config
-	sed -i 's/\(CONFIG_FEATURE_WTMP\)=y/# \1 is not set/' .config
-	sed -i 's/\(CONFIG_FEATURE_UTMP\)=y/# \1 is not set/' .config
-	sed -i 's/\(CONFIG_UDPSVD\)=y/# \1 is not set/' .config
-	sed -i 's/\(CONFIG_TCPSVD\)=y/# \1 is not set/' .config
-	make ARCH=$XKARCH CROSS_COMPILE=$CROSS_COMPILE EXTRA_CFLAGS="$CFLAGS" $MKOPTS
-	make ARCH=$XKARCH CROSS_COMPILE=$CROSS_COMPILE CONFIG_PREFIX=$ROOTFS install
-
-	# Configure busybox
-	printmsg "Configuring busybox"
-	chmod 4755 $ROOTFS/bin/busybox
-	install -Dm0755 examples/udhcp/simple.script $ROOTFS/share/udhcpc/default.script
-	rm -rf $ROOTFS/linuxrc
-
 	printmsg "Building libz"
 	tarxf https://sortix.org/libz/release/ libz-1.2.8.2015.12.26 .tar.gz
 	./configure \
 		--prefix= \
 		--build=$XHOST \
-		--host=$XTARGET
+		--host=$XTARGET \
+		--disable-shared
 	make $MKOPTS
 	make DESTDIR=$ROOTFS install
 	clean_libtool
@@ -330,7 +318,8 @@ build_rootfs() {
 	./configure \
 		--prefix= \
 		--build=$XHOST \
-		--host=$XTARGET
+		--host=$XTARGET \
+		--disable-shared
 	make $MKOPTS
 	make DESTDIR=$ROOTFS install
 	clean_libtool
@@ -341,7 +330,8 @@ build_rootfs() {
 		--prefix= \
 		--build=$XHOST \
 		--host=$XTARGET \
-		--disable-nls
+		--disable-nls \
+		--disable-shared
 	make $MKOPTS
 	make DESTDIR=$ROOTFS install
 	clean_libtool
@@ -357,9 +347,10 @@ EOF
 		--build=$XHOST \
 		--host=$XTARGET \
 		--cache-file=config.cache \
-		--disable-nls
+		--disable-nls \
+		--disable-shared
 	make $MKOPTS
-	make DESTDIR=$ROOTFS install
+	make DESTDIR=$ROOTFS install-strip
 	clean_libtool
 
 	printmsg "Building libelf"
@@ -372,7 +363,6 @@ EOF
 
 	printmsg "Building binutils"
 	tarxf http://ftpmirror.gnu.org/gnu/binutils/ binutils-$BINUTILSVER .tar.xz
-	sed -i "/ac_cpp=/s/\$CPPFLAGS/\$CPPFLAGS -O2/" libiberty/configure
 	mkdir build
 	cd build
 	../configure \
@@ -387,14 +377,119 @@ EOF
 		--enable-gold \
 		--enable-ld=default \
 		--enable-plugins \
-		--enable-shared \
 		--disable-multilib \
 		--disable-nls \
+		--disable-shared \
 		--disable-werror
 	make configure-host $MKOPTS
 	make tooldir=/ $MKOPTS
-	make tooldir=/ DESTDIR=$ROOTFS install
+	make tooldir=/ DESTDIR=$ROOTFS install-strip
 	clean_libtool
+
+	printmsg "Building gmp"
+	tarxf http://ftpmirror.gnu.org/gnu/gmp/ gmp-$GMPVER .tar.xz
+	./configure \
+		--prefix= \
+		--build=$XHOST \
+		--host=$XTARGET \
+		--enable-cxx \
+		--disable-shared
+	make $MKOPTS
+	make DESTDIR=$ROOTFS install-strip
+	clean_libtool
+
+	printmsg "Building mpfr"
+	tarxf http://www.mpfr.org/mpfr-$MPFRVER/ mpfr-$MPFRVER .tar.xz
+	./configure \
+		--prefix= \
+		--build=$XHOST \
+		--host=$XTARGET \
+		--enable-thread-safe \
+		--disable-shared
+	make $MKOPTS
+	make DESTDIR=$ROOTFS install-strip
+	clean_libtool
+
+	printmsg "Building mpc"
+	tarxf http://ftpmirror.gnu.org/gnu/mpc/ mpc-$MPCVER .tar.gz
+	./configure \
+		--prefix= \
+		--build=$XHOST \
+		--host=$XTARGET \
+		--disable-shared
+	make $MKOPTS
+	make DESTDIR=$ROOTFS install-strip
+	clean_libtool
+
+	printmsg "Building isl"
+	tarxf http://isl.gforge.inria.fr/ isl-$ISLVER .tar.xz
+	./configure \
+		--prefix= \
+		--build=$XHOST \
+		--host=$XTARGET \
+		--disable-shared
+	make $MKOPTS
+	make DESTDIR=$ROOTFS install-strip
+	clean_libtool
+
+	printmsg "Building GCC"
+	tarxf http://ftpmirror.gnu.org/gnu/gcc/gcc-$GCCVER/ gcc-$GCCVER .tar.xz
+	patch -Np1 -i $KEEP/gcc/10_all_default-fortify-source.patch
+	patch -Np1 -i $KEEP/gcc/11_all_default-warn-format-security.patch
+	patch -Np1 -i $KEEP/gcc/12_all_default-warn-trampolines.patch
+	patch -Np1 -i $KEEP/gcc/13_all_default-ssp-fix.patch
+	patch -Np1 -i $KEEP/gcc/25_all_alpha-mieee-default.patch
+	patch -Np1 -i $KEEP/gcc/34_all_ia64_note.GNU-stack.patch
+	patch -Np1 -i $KEEP/gcc/35_all_i386_libgcc_note.GNU-stack.patch
+	patch -Np1 -i $KEEP/gcc/50_all_libiberty-asprintf.patch
+	patch -Np1 -i $KEEP/gcc/51_all_libiberty-pic.patch
+	patch -Np1 -i $KEEP/gcc/54_all_nopie-all-flags.patch
+	patch -Np1 -i $KEEP/gcc/55_all_extra-options.patch
+	patch -Np1 -i $KEEP/gcc/90_all_pr55930-dependency-tracking.patch
+	patch -Np1 -i $KEEP/gcc/92_all_sh-drop-sysroot-suffix.patch
+	patch -Np1 -i $KEEP/gcc/93_all_arm-arch.patch
+	patch -Np1 -i $KEEP/gcc/94_all_mips-o32-asan.patch
+	patch -Np1 -i $KEEP/gcc/95_all_ia64-TEXTREL.patch
+	patch -Np1 -i $KEEP/gcc/96_all_lto-O2-PR85655.patch
+	patch -Np1 -i $KEEP/gcc/97_all_disable-systemtap-switch.patch
+	patch -Np1 -i $KEEP/gcc/gcc-pure64.patch
+	patch -Np1 -i $KEEP/gcc/gcc-pure64-mips.patch
+	sed -i 's@\./fixinc\.sh@-c true@' gcc/Makefile.in
+	mkdir build
+	cd build
+	../configure $GCCOPTS \
+		--prefix= \
+		--libdir=/lib \
+		--libexecdir=/lib \
+		--build=$XHOST \
+		--host=$XTARGET \
+		--target=$XTARGET \
+		--with-pkgversion="sssz" \
+		--with-system-zlib \
+		--enable-__cxa_atexit \
+		--enable-checking=release \
+		--enable-default-pie \
+		--enable-default-ssp \
+		--enable-languages=c,c++ \
+		--enable-lto \
+		--enable-threads=posix \
+		--enable-tls \
+		--disable-gnu-indirect-function \
+		--disable-libmpx \
+		--disable-libmudflap \
+		--disable-libsanitizer \
+		--disable-libstdcxx-pch \
+		--disable-multilib \
+		--disable-nls \
+		--disable-shared \
+		--disable-symvers \
+		--disable-werror
+	make $MKOPTS
+	make DESTDIR=$ROOTFS install-strip
+	clean_libtool
+
+	printmsg "Configuring GCC"
+	ln -s gcc $PKG/bin/cc
 }
 
 strip_rootfs() {
