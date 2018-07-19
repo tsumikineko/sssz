@@ -146,24 +146,6 @@ build_toolchain() {
 	tarxfalt http://ftpmirror.gnu.org/gnu/mpc/ mpc-$MPCVER .tar.gz
 	tarxfalt http://isl.gforge.inria.fr/ isl-$ISLVER .tar.xz
 	tarxf http://ftpmirror.gnu.org/gnu/gcc/gcc-$GCCVER/ gcc-$GCCVER .tar.xz
-	patch -Np1 -i $KEEP/gcc/10_all_default-fortify-source.patch
-	patch -Np1 -i $KEEP/gcc/11_all_default-warn-format-security.patch
-	patch -Np1 -i $KEEP/gcc/12_all_default-warn-trampolines.patch
-	patch -Np1 -i $KEEP/gcc/13_all_default-ssp-fix.patch
-	patch -Np1 -i $KEEP/gcc/25_all_alpha-mieee-default.patch
-	patch -Np1 -i $KEEP/gcc/34_all_ia64_note.GNU-stack.patch
-	patch -Np1 -i $KEEP/gcc/35_all_i386_libgcc_note.GNU-stack.patch
-	patch -Np1 -i $KEEP/gcc/50_all_libiberty-asprintf.patch
-	patch -Np1 -i $KEEP/gcc/51_all_libiberty-pic.patch
-	patch -Np1 -i $KEEP/gcc/54_all_nopie-all-flags.patch
-	patch -Np1 -i $KEEP/gcc/55_all_extra-options.patch
-	patch -Np1 -i $KEEP/gcc/90_all_pr55930-dependency-tracking.patch
-	patch -Np1 -i $KEEP/gcc/92_all_sh-drop-sysroot-suffix.patch
-	patch -Np1 -i $KEEP/gcc/93_all_arm-arch.patch
-	patch -Np1 -i $KEEP/gcc/94_all_mips-o32-asan.patch
-	patch -Np1 -i $KEEP/gcc/95_all_ia64-TEXTREL.patch
-	patch -Np1 -i $KEEP/gcc/96_all_lto-O2-PR85655.patch
-	patch -Np1 -i $KEEP/gcc/97_all_disable-systemtap-switch.patch
 	patch -Np1 -i $KEEP/gcc/gcc-pure64.patch
 	patch -Np1 -i $KEEP/gcc/gcc-pure64-mips.patch
 	mv ../gmp-$GMPVER gmp
@@ -231,24 +213,6 @@ build_toolchain() {
 	tarxfalt http://ftpmirror.gnu.org/gnu/mpc/ mpc-$MPCVER .tar.gz
 	tarxfalt http://isl.gforge.inria.fr/ isl-$ISLVER .tar.xz
 	tarxf http://ftpmirror.gnu.org/gnu/gcc/gcc-$GCCVER/ gcc-$GCCVER .tar.xz
-	patch -Np1 -i $KEEP/gcc/10_all_default-fortify-source.patch
-	patch -Np1 -i $KEEP/gcc/11_all_default-warn-format-security.patch
-	patch -Np1 -i $KEEP/gcc/12_all_default-warn-trampolines.patch
-	patch -Np1 -i $KEEP/gcc/13_all_default-ssp-fix.patch
-	patch -Np1 -i $KEEP/gcc/25_all_alpha-mieee-default.patch
-	patch -Np1 -i $KEEP/gcc/34_all_ia64_note.GNU-stack.patch
-	patch -Np1 -i $KEEP/gcc/35_all_i386_libgcc_note.GNU-stack.patch
-	patch -Np1 -i $KEEP/gcc/50_all_libiberty-asprintf.patch
-	patch -Np1 -i $KEEP/gcc/51_all_libiberty-pic.patch
-	patch -Np1 -i $KEEP/gcc/54_all_nopie-all-flags.patch
-	patch -Np1 -i $KEEP/gcc/55_all_extra-options.patch
-	patch -Np1 -i $KEEP/gcc/90_all_pr55930-dependency-tracking.patch
-	patch -Np1 -i $KEEP/gcc/92_all_sh-drop-sysroot-suffix.patch
-	patch -Np1 -i $KEEP/gcc/93_all_arm-arch.patch
-	patch -Np1 -i $KEEP/gcc/94_all_mips-o32-asan.patch
-	patch -Np1 -i $KEEP/gcc/95_all_ia64-TEXTREL.patch
-	patch -Np1 -i $KEEP/gcc/96_all_lto-O2-PR85655.patch
-	patch -Np1 -i $KEEP/gcc/97_all_disable-systemtap-switch.patch
 	patch -Np1 -i $KEEP/gcc/gcc-pure64.patch
 	patch -Np1 -i $KEEP/gcc/gcc-pure64-mips.patch
 	mv ../gmp-$GMPVER gmp
@@ -434,24 +398,6 @@ EOF
 
 	printmsg "Building GCC"
 	tarxf http://ftpmirror.gnu.org/gnu/gcc/gcc-$GCCVER/ gcc-$GCCVER .tar.xz
-	patch -Np1 -i $KEEP/gcc/10_all_default-fortify-source.patch
-	patch -Np1 -i $KEEP/gcc/11_all_default-warn-format-security.patch
-	patch -Np1 -i $KEEP/gcc/12_all_default-warn-trampolines.patch
-	patch -Np1 -i $KEEP/gcc/13_all_default-ssp-fix.patch
-	patch -Np1 -i $KEEP/gcc/25_all_alpha-mieee-default.patch
-	patch -Np1 -i $KEEP/gcc/34_all_ia64_note.GNU-stack.patch
-	patch -Np1 -i $KEEP/gcc/35_all_i386_libgcc_note.GNU-stack.patch
-	patch -Np1 -i $KEEP/gcc/50_all_libiberty-asprintf.patch
-	patch -Np1 -i $KEEP/gcc/51_all_libiberty-pic.patch
-	patch -Np1 -i $KEEP/gcc/54_all_nopie-all-flags.patch
-	patch -Np1 -i $KEEP/gcc/55_all_extra-options.patch
-	patch -Np1 -i $KEEP/gcc/90_all_pr55930-dependency-tracking.patch
-	patch -Np1 -i $KEEP/gcc/92_all_sh-drop-sysroot-suffix.patch
-	patch -Np1 -i $KEEP/gcc/93_all_arm-arch.patch
-	patch -Np1 -i $KEEP/gcc/94_all_mips-o32-asan.patch
-	patch -Np1 -i $KEEP/gcc/95_all_ia64-TEXTREL.patch
-	patch -Np1 -i $KEEP/gcc/96_all_lto-O2-PR85655.patch
-	patch -Np1 -i $KEEP/gcc/97_all_disable-systemtap-switch.patch
 	patch -Np1 -i $KEEP/gcc/gcc-pure64.patch
 	patch -Np1 -i $KEEP/gcc/gcc-pure64-mips.patch
 	sed -i 's@\./fixinc\.sh@-c true@' gcc/Makefile.in
