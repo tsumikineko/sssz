@@ -4,7 +4,7 @@
 export LINUXVER="4.14.56"
 export LINUXPATCHVER="4.14.56.a"
 export MUSLVER="1.1.19"
-export BINUTILSVER="2.31.1"
+export BINUTILSVER="2.30"
 export GMPVER="6.1.2"
 export MPFRVER="4.0.1"
 export MPCVER="1.1.0"

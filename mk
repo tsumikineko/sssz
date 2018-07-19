@@ -71,9 +71,9 @@ setup_environment() {
 	export HOSTCXX="g++"
 	export MKOPTS="-j$(expr $(nproc) + 1)"
 
-	export CFLAGS="-Os -g0 -pipe"
+	export CFLAGS="-Os -g0 -pipe --static"
 	export CXXFLAGS="$CFLAGS"
-	export LDFLAGS="-s"
+	export LDFLAGS="-s -static"
 }
 
 prepare_filesystem() {
@@ -90,21 +90,15 @@ build_toolchain() {
 	printmsg "Building cross-toolchain for $BARCH"
 	source $KEEP/toolchain_vers
 
-	printmsg "Downloading patch for Linux"
-	cd $SOURCES
-	curl -L -O https://github.com/anthraxx/linux-hardened/releases/download/$LINUXPATCHVER/linux-hardened-$LINUXPATCHVER.patch -C -
-
 	printmsg "Building host file"
 	tarxf ftp://ftp.astron.com/pub/file/ file-$FILEVER .tar.gz
 	./configure \
-		--prefix=$TOOLS \
-		--disable-shared
+		--prefix=$TOOLS
 	make $MKOPTS
 	make install
 
 	printmsg "Building host pkgconf"
 	tarxf http://distfiles.dereferenced.org/pkgconf/ pkgconf-$PKGCONFVER .tar.xz
-	LDFLAGS="-s -static" \
 	./configure \
 		--prefix=$TOOLS \
 		--host=$XTARGET \
@@ -178,7 +172,6 @@ build_toolchain() {
 
 	printmsg "Installing Linux headers"
 	tarxf https://cdn.kernel.org/pub/linux/kernel/v4.x/ linux-$LINUXVER .tar.xz
-	patch -Np1 -i $SOURCES/linux-hardened-$LINUXPATCHVER.patch
 	make mrproper $MKOPTS
 	make ARCH=$XKARCH INSTALL_HDR_PATH=$ROOTFS headers_install
 	find $ROOTFS/include -name .install -or -name ..install.cmd | xargs rm -rf
@@ -223,6 +216,8 @@ build_toolchain() {
 		--with-sysroot=$ROOTFS \
 		--enable-__cxa_atexit \
 		--enable-checking=release \
+		--enable-default-pie \
+		--enable-default-ssp \
 		--enable-languages=c,c++ \
 		--enable-lto \
 		--enable-threads=posix \
@@ -243,8 +238,8 @@ build_toolchain() {
 prepare_rootfs_build() {
 	printmsg "Preparing for rootfs build"
 	export CROSS_COMPILE="$XTARGET-"
-	export CC="$XTARGET-gcc -static --static"
-	export CXX="$XTARGET-g++ -static --static"
+	export CC="$XTARGET-gcc"
+	export CXX="$XTARGET-g++"
 	export AR="$XTARGET-ar"
 	export AS="$XTARGET-as"
 	export RANLIB="$XTARGET-ranlib"
@@ -272,8 +267,7 @@ build_rootfs() {
 	./configure \
 		--prefix= \
 		--build=$XHOST \
-		--host=$XTARGET \
-		--disable-shared
+		--host=$XTARGET
 	make $MKOPTS
 	make DESTDIR=$ROOTFS install
 	clean_libtool
@@ -284,8 +278,7 @@ build_rootfs() {
 		--prefix= \
 		--build=$XHOST \
 		--host=$XTARGET \
-		--disable-nls \
-		--disable-shared
+		--disable-nls
 	make $MKOPTS
 	make DESTDIR=$ROOTFS install
 	clean_libtool
@@ -301,8 +294,7 @@ EOF
 		--build=$XHOST \
 		--host=$XTARGET \
 		--cache-file=config.cache \
-		--disable-nls \
-		--disable-shared
+		--disable-nls
 	make $MKOPTS
 	make DESTDIR=$ROOTFS install-strip
 	clean_libtool
@@ -404,6 +396,8 @@ EOF
 		--with-system-zlib \
 		--enable-__cxa_atexit \
 		--enable-checking=release \
+		--enable-default-pie \
+		--enable-default-ssp \
 		--enable-languages=c,c++ \
 		--enable-lto \
 		--enable-threads=posix \
@@ -423,7 +417,7 @@ EOF
 	clean_libtool
 
 	printmsg "Configuring GCC"
-	ln -s gcc $PKG/bin/cc
+	ln -s gcc $ROOTFS/bin/cc
 }
 
 strip_rootfs() {
