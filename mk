@@ -46,6 +46,13 @@ setup_architecture() {
 			export XKARCH="x86_64"
 			export GCCOPTS=
 			;;
+		i686)
+			printmsg "Using configuration for i686"
+			export XHOST="$(echo ${MACHTYPE} | sed -e 's/-[^-]*/-cross/')"
+			export XTARGET="i686-linux-musl"
+			export XKARCH="i386"
+			export GCCOPTS=
+			;;
 		*)
 			printmsgerror "BARCH variable isn't set!"
 			exit 1
@@ -107,7 +114,7 @@ build_toolchain() {
 	make $MKOPTS
 	make install
 	ln -s pkgconf $TOOLS/bin/pkg-config
-	ln -s pkgconf $TOOLS/bin/$CROSS_COMPILEpkg-config
+	ln -s pkgconf $TOOLS/bin/$XTARGET-pkg-config
 
 	printmsg "Building host binutils"
 	tarxf http://ftpmirror.gnu.org/gnu/binutils/ binutils-$BINUTILSVER .tar.xz
@@ -179,11 +186,10 @@ build_toolchain() {
 
 	printmsg "Building musl libc"
 	tarxf http://www.musl-libc.org/releases/ musl-$MUSLVER .tar.gz
+	CFLAGS="-Os -g0 -pipe" LDFLAGS="-s" CC="$XTARGET-gcc" CROSS_COMPILE="$XTARGET-" \
 	./configure \
 		--prefix= \
 		--syslibdir=/lib \
-		--build=$XHOST \
-		--host=$XTARGET \
 		--enable-optimize
 	make $MKOPTS
 	make DESTDIR=$ROOTFS install
@@ -216,8 +222,6 @@ build_toolchain() {
 		--with-sysroot=$ROOTFS \
 		--enable-__cxa_atexit \
 		--enable-checking=release \
-		--enable-default-pie \
-		--enable-default-ssp \
 		--enable-languages=c,c++ \
 		--enable-lto \
 		--enable-threads=posix \
@@ -251,6 +255,7 @@ prepare_rootfs_build() {
 
 build_rootfs() {
 	source $KEEP/toolchain_vers
+
 	printmsg "Building libz"
 	tarxf https://sortix.org/libz/release/ libz-1.2.8.2015.12.26 .tar.gz
 	./configure \
@@ -396,8 +401,6 @@ EOF
 		--with-system-zlib \
 		--enable-__cxa_atexit \
 		--enable-checking=release \
-		--enable-default-pie \
-		--enable-default-ssp \
 		--enable-languages=c,c++ \
 		--enable-lto \
 		--enable-threads=posix \
@@ -418,6 +421,40 @@ EOF
 
 	printmsg "Configuring GCC"
 	ln -s gcc $ROOTFS/bin/cc
+
+	printmsg "Building attr"
+	tarxf http://download.savannah.gnu.org/releases/attr/ attr-2.4.48 .tar.gz
+	./configure \
+		--prefix= \
+		--sysconfdir=/etc \
+		--build=$XHOST \
+		--host=$XTARGET \
+		--disable-nls \
+		--disable-shared
+	make $MKOPTS
+	make DESTDIR=$ROOTFS install-strip
+	clean_libtool
+
+	printmsg "Building acl"
+	tarxf http://download.savannah.gnu.org/releases/acl/ acl-2.2.53 .tar.gz
+	./configure \
+		--prefix= \
+		--build=$XHOST \
+		--host=$XTARGET \
+		--disable-nls \
+		--disable-shared
+	make $MKOPTS
+	make DESTDIR=$ROOTFS install-strip
+	clean_libtool
+
+	printmsg "Building libcap"
+	tarxf https://www.kernel.org/pub/linux/libs/security/linux-privs/libcap2/ libcap-2.25 .tar.xz
+	sed -i '/install.*LIBNAME/d' libcap/Makefile
+	sed -i 's,BUILD_GPERF := ,BUILD_GPERF := no #,' Make.Rules
+	sed -i "/SBINDIR/s#sbin#bin#" Make.Rules
+	make prefix= lib=lib PAM_CAP=no $MKOPTS
+	make prefix=/usr lib=lib DESTDIR=$ROOTFS PAM_CAP=no RAISE_SETFCAP=no install
+	clean_libtool
 }
 
 strip_rootfs() {
