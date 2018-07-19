@@ -46,20 +46,6 @@ setup_architecture() {
 			export XKARCH="x86_64"
 			export GCCOPTS=
 			;;
-		aarch64)
-			printmsg "Using configuration for aarch64"
-			export XHOST="$(echo ${MACHTYPE} | sed -e 's/-[^-]*/-cross/')"
-			export XTARGET="aarch64-linux-musl"
-			export XKARCH="arm64"
-			export GCCOPTS="--with-arch=armv8-a --with-abi=lp64"
-			;;
-		arm)
-			printmsg "Using configuration for armhf"
-			export XHOST="$(echo ${MACHTYPE} | sed -e 's/-[^-]*/-cross/')"
-			export XTARGET="armv7l-linux-musleabihf"
-			export XKARCH="arm"
-			export GCCOPTS="--with-arch=armv7-a --with-fpu=vfpv3 --with-float=hard"
-			;;
 		*)
 			printmsgerror "BARCH variable isn't set!"
 			exit 1
