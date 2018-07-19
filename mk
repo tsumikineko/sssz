@@ -92,6 +92,12 @@ setup_environment() {
 
 prepare_filesystem() {
 	printmsg "Preparing rootfs skeleton"
+	cd $ROOTFS
+
+	ln -svf . usr
+
+	mkdir -p bin
+	ln -s bin sbin
 }
 
 build_toolchain() {
@@ -231,8 +237,6 @@ build_toolchain() {
 		--with-sysroot=$ROOTFS \
 		--enable-__cxa_atexit \
 		--enable-checking=release \
-		--enable-default-pie \
-		--enable-default-ssp \
 		--enable-languages=c,c++ \
 		--enable-lto \
 		--enable-threads=posix \
@@ -414,8 +418,6 @@ EOF
 		--with-system-zlib \
 		--enable-__cxa_atexit \
 		--enable-checking=release \
-		--enable-default-pie \
-		--enable-default-ssp \
 		--enable-languages=c,c++ \
 		--enable-lto \
 		--enable-threads=posix \
