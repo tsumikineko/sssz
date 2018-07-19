@@ -71,9 +71,9 @@ setup_environment() {
 	export HOSTCXX="g++"
 	export MKOPTS="-j$(expr $(nproc) + 1)"
 
-	export CFLAGS="-Os -g0 -pipe --static"
+	export CFLAGS="-Os -g0 -pipe"
 	export CXXFLAGS="$CFLAGS"
-	export LDFLAGS="-s -static"
+	export LDFLAGS="-s"
 }
 
 prepare_filesystem() {
@@ -243,8 +243,8 @@ build_toolchain() {
 prepare_rootfs_build() {
 	printmsg "Preparing for rootfs build"
 	export CROSS_COMPILE="$XTARGET-"
-	export CC="$XTARGET-gcc"
-	export CXX="$XTARGET-g++"
+	export CC="$XTARGET-gcc -static --static"
+	export CXX="$XTARGET-g++ -static --static"
 	export AR="$XTARGET-ar"
 	export AS="$XTARGET-as"
 	export RANLIB="$XTARGET-ranlib"
