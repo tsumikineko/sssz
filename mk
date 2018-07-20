@@ -449,12 +449,14 @@ EOF
 
 	printmsg "Building libcap"
 	tarxf https://www.kernel.org/pub/linux/libs/security/linux-privs/libcap2/ libcap-2.25 .tar.xz
-	sed -i '/install.*LIBNAME/d' libcap/Makefile
 	sed -i 's,BUILD_GPERF := ,BUILD_GPERF := no #,' Make.Rules
 	sed -i "/SBINDIR/s#sbin#bin#" Make.Rules
 	make prefix= lib=lib PAM_CAP=no $MKOPTS
 	make prefix=/usr lib=lib DESTDIR=$ROOTFS PAM_CAP=no RAISE_SETFCAP=no install
 	clean_libtool
+
+	printmsg "Configuring libcap"
+	rm -rf $ROOTFS/lib/libcap*.so*
 }
 
 strip_rootfs() {
